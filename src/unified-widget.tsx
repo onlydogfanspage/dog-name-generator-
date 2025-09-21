@@ -11,12 +11,9 @@ function initializeUnifiedWidgets() {
   containers.forEach((container) => {
     try {
       const ctaUrl = container.getAttribute("data-cta-url") || "/dog-names";
-      const apiUrl = container.getAttribute("data-api-url") || "http://localhost:3001";
 
       const root = ReactDOM.createRoot(container as HTMLElement);
-      root.render(
-        React.createElement(DogNameGeneratorUnified, { ctaUrl, apiUrl })
-      );
+      root.render(React.createElement(DogNameGeneratorUnified, { ctaUrl }));
 
       console.log("Unified widget initialized successfully");
     } catch (error) {

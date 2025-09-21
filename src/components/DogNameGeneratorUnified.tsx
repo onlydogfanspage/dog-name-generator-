@@ -1,16 +1,8 @@
 import { useState } from "react";
-import {
-  Sparkles,
-  Dog,
-  Search,
-  ArrowRight,
-  Trophy,
-  Zap,
-} from "lucide-react";
+import { Sparkles, Dog, Search, ArrowRight, Trophy, Zap } from "lucide-react";
 
 interface DogNameGeneratorUnifiedProps {
   ctaUrl?: string; // Allow custom CTA URL
-  apiUrl?: string; // Backend API URL
 }
 
 interface QuizAnswers {
@@ -25,7 +17,6 @@ interface QuizAnswers {
 
 export default function DogNameGeneratorUnified({
   ctaUrl = "/dog-names", // Default to a relative Webflow page
-  apiUrl = "http://localhost:3001", // Default to local backend
 }: DogNameGeneratorUnifiedProps) {
   // Mode selection: 'choose' | 'quick' | 'quiz'
   const [mode, setMode] = useState<"choose" | "quick" | "quiz">("choose");
@@ -261,7 +252,6 @@ export default function DogNameGeneratorUnified({
     .filter((dogBreed) => dogBreed.toLowerCase().includes(breed.toLowerCase()))
     .slice(0, 10);
 
-
   const handleQuizAnswerSelect = (questionId: string, value: string) => {
     setQuizAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
@@ -342,28 +332,80 @@ Generate 5 creative dog names that match this personality profile. Make them ${q
     setShowResults(false);
 
     try {
-      const response = await fetch(`${apiUrl}/api/generate-names`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
+      // Get API key from window object (set in Webflow custom code)
+      const apiKey = (window as any).GEMINI_API_KEY;
+
+      if (!apiKey) {
+        throw new Error(
+          "Gemini API key not found. Please ensure it's set in your Webflow custom code."
+        );
+      }
+
+      // Call Gemini API directly
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.9,
+              topK: 1,
+              topP: 1,
+              maxOutputTokens: 2048,
+            },
+            safetySettings: [
+              {
+                category: "HARM_CATEGORY_HARASSMENT",
+                threshold: "BLOCK_MEDIUM_AND_ABOVE",
+              },
+              {
+                category: "HARM_CATEGORY_HATE_SPEECH",
+                threshold: "BLOCK_MEDIUM_AND_ABOVE",
+              },
+              {
+                category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                threshold: "BLOCK_MEDIUM_AND_ABOVE",
+              },
+              {
+                category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                threshold: "BLOCK_MEDIUM_AND_ABOVE",
+              },
+            ],
+          }),
+        }
+      );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        if (response.status === 400) {
+          throw new Error(
+            "Invalid API key. Please check your Gemini API key in Webflow custom code."
+          );
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      if (data.names && data.names.length > 0) {
-        setGeneratedNames(data.names);
+      if (generatedText) {
+        const names = generatedText
+          .split("\n")
+          .filter((name: string) => name.trim())
+          .slice(0, 5);
+        setGeneratedNames(names);
         setShowResults(true);
       } else {
         throw new Error("No names generated");
       }
     } catch (error) {
       console.error("Error generating names:", error);
-      alert("Failed to generate names. Please try again.");
+      if (error instanceof Error && error.message.includes("API key")) {
+        alert(error.message);
+      } else {
+        alert("Failed to generate names. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -387,7 +429,6 @@ Generate 5 creative dog names that match this personality profile. Make them ${q
       nameStyle: "",
     });
   };
-
 
   // Mode Selection Screen
   if (mode === "choose") {
@@ -535,7 +576,6 @@ Generate 5 creative dog names that match this personality profile. Make them ${q
             </div>
           </button>
         </div>
-
       </div>
     );
   }
