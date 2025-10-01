@@ -3,6 +3,7 @@ import { Sparkles, Dog, Search, ArrowRight, Trophy, Zap } from "lucide-react";
 
 interface DogNameGeneratorUnifiedProps {
   ctaUrl?: string; // Allow custom CTA URL
+  apiKey?: string; // Allow custom API key
 }
 
 interface QuizAnswers {
@@ -17,6 +18,7 @@ interface QuizAnswers {
 
 export default function DogNameGeneratorUnified({
   ctaUrl = "/dog-names", // Default to a relative Webflow page
+  apiKey = "", // API key from data attribute
 }: DogNameGeneratorUnifiedProps) {
   // Mode selection: 'choose' | 'quick' | 'quiz'
   const [mode, setMode] = useState<"choose" | "quick" | "quiz">("choose");
@@ -332,58 +334,81 @@ Generate 5 creative dog names that match this personality profile. Make them ${q
     setShowResults(false);
 
     try {
-      // Get API key from window object (set in Webflow custom code)
-      const apiKey = (window as any).GEMINI_API_KEY;
+      // Use API key from props (data-api-key attribute) or fallback to window object
+      const effectiveApiKey = apiKey || (window as any).GEMINI_API_KEY;
 
-      if (!apiKey) {
+      if (!effectiveApiKey) {
         throw new Error(
-          "Gemini API key not found. Please ensure it's set in your Webflow custom code."
+          "Gemini API key not found. Please add data-api-key attribute to the widget container."
         );
       }
 
-      // Call Gemini API directly
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.9,
-              topK: 1,
-              topP: 1,
-              maxOutputTokens: 2048,
-            },
-            safetySettings: [
-              {
-                category: "HARM_CATEGORY_HARASSMENT",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE",
-              },
-              {
-                category: "HARM_CATEGORY_HATE_SPEECH",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE",
-              },
-              {
-                category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE",
-              },
-              {
-                category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE",
-              },
-            ],
-          }),
-        }
-      );
+      // Try different Gemini API endpoints (starting with newest models)
+      const endpoints = [
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveApiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${effectiveApiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${effectiveApiKey}`,
+      ];
 
-      if (!response.ok) {
-        if (response.status === 400) {
+      let response;
+
+      for (const endpoint of endpoints) {
+        try {
+          response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                temperature: 0.9,
+                topK: 1,
+                topP: 1,
+                maxOutputTokens: 2048,
+              },
+              safetySettings: [
+                {
+                  category: "HARM_CATEGORY_HARASSMENT",
+                  threshold: "BLOCK_MEDIUM_AND_ABOVE",
+                },
+                {
+                  category: "HARM_CATEGORY_HATE_SPEECH",
+                  threshold: "BLOCK_MEDIUM_AND_ABOVE",
+                },
+                {
+                  category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                  threshold: "BLOCK_MEDIUM_AND_ABOVE",
+                },
+                {
+                  category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                  threshold: "BLOCK_MEDIUM_AND_ABOVE",
+                },
+              ],
+            }),
+          });
+
+          if (response.ok) {
+            console.log("✅ API call successful with endpoint:", endpoint);
+            break;
+          }
+        } catch (err) {
+          continue;
+        }
+      }
+
+      if (!response || !response.ok) {
+        const errorData = await response?.json().catch(() => null);
+        console.error("API Error:", errorData);
+
+        if (response?.status === 400) {
           throw new Error(
-            "Invalid API key. Please check your Gemini API key in Webflow custom code."
+            "Invalid API key. Please check your Gemini API key or get a new one from https://makersuite.google.com/app/apikey"
+          );
+        } else if (response?.status === 404) {
+          throw new Error(
+            "Gemini API model not found. Your API key may be outdated. Please get a new key from https://makersuite.google.com/app/apikey"
           );
         }
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response?.status || 'unknown'}`);
       }
 
       const data = await response.json();
@@ -401,7 +426,7 @@ Generate 5 creative dog names that match this personality profile. Make them ${q
       }
     } catch (error) {
       console.error("Error generating names:", error);
-      if (error instanceof Error && error.message.includes("API key")) {
+      if (error instanceof Error) {
         alert(error.message);
       } else {
         alert("Failed to generate names. Please try again.");

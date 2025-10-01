@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Test Unified Widget</title>
+    <title>Test Unified Widget - API Key Embedded</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -11,7 +11,7 @@
         background: #f0f2f5;
       }
       .container {
-        max-width: 800px;
+        max-width: 1200px;
         margin: 0 auto;
       }
       .test-section {
@@ -21,74 +21,99 @@
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
+      .info-box {
+        background: #e8f5e9;
+        border-left: 4px solid #4caf50;
+        padding: 15px;
+        margin: 15px 0;
+      }
+      .code-box {
+        background: #f5f5f5;
+        padding: 15px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 14px;
+        overflow-x: auto;
+      }
     </style>
   </head>
   <body>
     <div class="container">
-      <h1>🧪 Unified Widget Test</h1>
+      <h1>🧪 Unified Widget Test - API Key Embedded</h1>
 
-      <div class="test-section">
-        <h2>🌐 CDN Version Test</h2>
-        <p>Widget loaded from jsDelivr CDN:</p>
-        <div
-          class="dog-name-unified-widget"
-          data-api-key="AIzaSyB-T35VfSzeKXHIVaEh5OINtGB_8PlqTtk"
-          data-cta-url="/test-page"
-        ></div>
+      <div class="info-box">
+        <h3>✅ Improved Version</h3>
+        <p>
+          This version now reads the API key from the <code>data-api-key</code>
+          attribute, making it more reliable and eliminating the need for
+          <code>window.GEMINI_API_KEY</code>.
+        </p>
+        <p>
+          <strong>⚠️ Important:</strong> If you see a 404 error, your API key may be invalid or expired.
+          Get a new API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>.
+        </p>
       </div>
 
       <div class="test-section">
-        <h2>📱 Local Version Test</h2>
-        <p>Widget loaded from local dist file:</p>
+        <h2>🚀 Local Version Test (Recommended)</h2>
+        <p>Widget with embedded API key - No configuration needed!</p>
+
+        <!-- The Widget -->
         <div
-          class="dog-name-unified-widget-local"
-          data-api-key="AIzaSyB-T35VfSzeKXHIVaEh5OINtGB_8PlqTtk"
-          data-cta-url="/test-page-local"
+          class="dog-name-unified-widget"
+          data-api-key="AIzaSyDIG3ohbbaY3cJ7MHlbN5Yz0K7g8KGIGCs"
+          data-cta-url="/premium-names"
         ></div>
+
+        <div class="code-box" style="margin-top: 20px">
+          <strong>Embed Code:</strong><br /><br />
+          &lt;!-- Dog Name Generator Widget --&gt;<br />
+          &lt;div class="dog-name-unified-widget"<br />
+          &nbsp;&nbsp;data-api-key="AIzaSyDIG3ohbbaY3cJ7MHlbN5Yz0K7g8KGIGCs"<br />
+          &nbsp;&nbsp;data-cta-url="/premium-names"&gt;<br />
+          &lt;/div&gt;<br /><br />
+          &lt;script
+          src="https://onlydogfanspage.github.io/dog-name-generator-/dog-name-unified-widget.iife.js"&gt;&lt;/script&gt;<br />
+          &lt;script&gt;<br />
+          &nbsp;&nbsp;window.addEventListener("load", function() {<br />
+          &nbsp;&nbsp;&nbsp;&nbsp;if (window.renderDogNameUnifiedWidget) {<br />
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window.renderDogNameUnifiedWidget();<br />
+          &nbsp;&nbsp;&nbsp;&nbsp;}<br />
+          &nbsp;&nbsp;});<br />
+          &lt;/script&gt;
+        </div>
       </div>
     </div>
 
-    <!-- CDN Version -->
-    <script src="https://cdn.jsdelivr.net/gh/zaynnzhong/dog-name-generator-widget@main/dist/dog-name-unified-widget.iife.js?v=1"></script>
-
-    <!-- Local Version for comparison -->
-    <script src="./dist/dog-name-unified-widget.iife.js"></script>
+    <!-- Local Version with cache busting -->
+    <script src="./dist/dog-name-unified-widget.iife.js?v=2"></script>
 
     <script>
-      console.log("🧪 Testing unified widget...");
+      console.log("🧪 Testing unified widget with new API key and models...");
 
-      // Test CDN version
+      // Just verify widget loaded - don't re-initialize
       window.addEventListener("load", function () {
-        console.log("Page loaded, checking for widget functions...");
+        console.log("Page loaded, checking for widget...");
 
         if (window.renderDogNameUnifiedWidget) {
-          console.log("✅ CDN widget function found!");
-          window.renderDogNameUnifiedWidget();
+          console.log("✅ Widget function available!");
         } else {
-          console.error("❌ CDN widget function NOT found!");
-        }
-
-        // Test local version for comparison
-        const localContainers = document.querySelectorAll(
-          ".dog-name-unified-widget-local"
-        );
-        if (localContainers.length > 0 && window.React && window.ReactDOM) {
-          console.log("✅ Local widget components available");
+          console.error("❌ Widget function NOT found!");
         }
       });
 
-      // Additional debugging
+      // Check widget status after initialization
       setTimeout(() => {
         const widgets = document.querySelectorAll(".dog-name-unified-widget");
-        console.log(`Found ${widgets.length} widget containers`);
+        console.log(`Found ${widgets.length} widget container(s)`);
 
         widgets.forEach((widget, index) => {
           console.log(
             `Widget ${index + 1}:`,
-            widget.innerHTML ? "Has content" : "Empty"
+            widget.innerHTML ? "✅ Initialized" : "❌ Empty"
           );
         });
-      }, 2000);
+      }, 1000);
     </script>
   </body>
 </html>

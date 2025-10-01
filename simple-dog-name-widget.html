@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Dog Name Generator Widget</title>
+</head>
+<body>
+    <!--
+    ========================================
+    SIMPLE DOG NAME GENERATOR WIDGET
+    ========================================
+
+    Copy the code below and paste it into your website where you want the widget to appear.
+    Replace YOUR_GEMINI_API_KEY_HERE with your actual Gemini API key.
+    -->
+
+    <!-- Widget Container -->
+    <div id="dog-name-widget-container"></div>
+
+    <!-- Widget Script (Embed this on your site) -->
+    <script>
+    (function() {
+        // ⚠️ IMPORTANT: Replace this with your actual Gemini API key
+        const GEMINI_API_KEY = 'AIzaSyB-T35VfSzeKXHIVaEh5OINtGB_8PlqTtk';
+
+        // Configuration
+        const CONFIG = {
+            ctaUrl: '/premium-names', // Change this to your target page
+            primaryColor: '#55a3ff',
+            quizColor: '#F56220'
+        };
+
+        // Create widget styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .dog-widget {
+                max-width: 1180px;
+                width: 100%;
+                margin: 0 auto;
+                padding: 24px;
+                font-family: 'Inter', -apple-system, sans-serif;
+                background: white;
+                border-radius: 20px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                color: #2d3436;
+            }
+            .dog-widget * { box-sizing: border-box; }
+            .dog-widget-btn {
+                padding: 16px 24px;
+                border-radius: 12px;
+                border: none;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: 600;
+                transition: all 0.3s;
+            }
+            .dog-widget-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            .dog-widget-input {
+                width: 100%;
+                padding: 14px;
+                border: 2px solid #ddd;
+                border-radius: 12px;
+                font-size: 16px;
+                outline: none;
+            }
+            .dog-widget-input:focus { border-color: ${CONFIG.primaryColor}; }
+            .dog-name-card {
+                padding: 20px;
+                background: white;
+                border: 2px solid #e9ecef;
+                border-radius: 16px;
+                font-size: 20px;
+                font-weight: 700;
+                text-align: center;
+                transition: all 0.3s;
+            }
+            .dog-name-card:hover {
+                transform: translateY(-4px);
+                border-color: ${CONFIG.primaryColor};
+                color: ${CONFIG.primaryColor};
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            .loading-spinner {
+                width: 20px;
+                height: 20px;
+                border: 2px solid rgba(255,255,255,0.3);
+                border-top: 2px solid white;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                display: inline-block;
+                margin-right: 8px;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Widget HTML template
+        const container = document.getElementById('dog-name-widget-container');
+
+        // State management
+        let state = {
+            mode: 'quick', // 'quick' or 'results'
+            breed: '',
+            gender: '',
+            preference: '',
+            names: [],
+            loading: false
+        };
+
+        // Dog breeds
+        const breeds = [
+            "Labrador Retriever", "Golden Retriever", "German Shepherd", "French Bulldog",
+            "Bulldog", "Poodle", "Beagle", "Rottweiler", "Dachshund", "Siberian Husky",
+            "Boxer", "Yorkshire Terrier", "Chihuahua", "Border Collie", "Australian Shepherd",
+            "Shih Tzu", "Boston Terrier", "Pomeranian", "Mixed Breed", "Mutt"
+        ];
+
+        // Preferences
+        const preferences = [
+            { value: 'food', label: '🍖 Food', desc: 'Delicious treats' },
+            { value: 'nature', label: '🌺 Nature', desc: 'Flowers & elements' },
+            { value: 'character', label: '🦸 Characters', desc: 'Movies & heroes' },
+            { value: 'color', label: '🎨 Colors', desc: 'Vibrant hues' },
+            { value: 'traditional', label: '👑 Traditional', desc: 'Classic names' },
+            { value: 'funny', label: '😂 Funny', desc: 'Quirky & unique' }
+        ];
+
+        // Generate names via Gemini API
+        async function generateNames() {
+            if (!state.breed || !state.gender || !state.preference) {
+                alert('Please fill in all fields!');
+                return;
+            }
+
+            state.loading = true;
+            render();
+
+            const prompt = `Generate 5 creative and playful dog names for a ${state.gender} ${state.breed} dog. The names should be inspired by ${state.preference}. Make the names fun, memorable, and suitable for a beloved pet. Return only the names, one per line, without numbers or bullets.`;
+
+            try {
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: {
+                                temperature: 0.9,
+                                topK: 1,
+                                topP: 1,
+                                maxOutputTokens: 2048
+                            }
+                        })
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Failed to generate names');
+                }
+
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (text) {
+                    state.names = text.split('\n')
+                        .filter(name => name.trim())
+                        .slice(0, 5);
+                    state.mode = 'results';
+                } else {
+                    throw new Error('No names generated');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to generate names. Please try again.');
+            } finally {
+                state.loading = false;
+                render();
+            }
+        }
+
+        // Render function
+        function render() {
+            if (state.mode === 'quick') {
+                container.innerHTML = `
+                    <div class="dog-widget">
+                        <div style="text-align: center; margin-bottom: 24px;">
+                            <div style="font-size: 48px; margin-bottom: 12px;">🐕</div>
+                            <h1 style="font-size: 32px; font-weight: 700; margin: 0 0 8px 0;">
+                                Dog Name Generator
+                            </h1>
+                            <p style="font-size: 16px; color: #636e72; margin: 0;">
+                                Find the perfect name for your furry friend ⚡
+                            </p>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 20px;">
+                            <!-- Breed -->
+                            <div>
+                                <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                    🐕 Dog Breed
+                                </label>
+                                <select id="breed-select" class="dog-widget-input" onchange="window.dogWidgetSetBreed(this.value)">
+                                    <option value="">Select a breed...</option>
+                                    ${breeds.map(b => `<option value="${b}" ${state.breed === b ? 'selected' : ''}>${b}</option>`).join('')}
+                                </select>
+                            </div>
+
+                            <!-- Gender -->
+                            <div>
+                                <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                    👫 Gender
+                                </label>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <button
+                                        class="dog-widget-btn"
+                                        onclick="window.dogWidgetSetGender('male')"
+                                        style="background: ${state.gender === 'male' ? CONFIG.primaryColor : 'white'};
+                                               color: ${state.gender === 'male' ? 'white' : '#636e72'};
+                                               border: 2px solid ${state.gender === 'male' ? CONFIG.primaryColor : '#ddd'};">
+                                        🐕 Male
+                                    </button>
+                                    <button
+                                        class="dog-widget-btn"
+                                        onclick="window.dogWidgetSetGender('female')"
+                                        style="background: ${state.gender === 'female' ? CONFIG.primaryColor : 'white'};
+                                               color: ${state.gender === 'female' ? 'white' : '#636e72'};
+                                               border: 2px solid ${state.gender === 'female' ? CONFIG.primaryColor : '#ddd'};">
+                                        🐩 Female
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Preference -->
+                            <div>
+                                <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                    ✨ Name Style
+                                </label>
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                                    ${preferences.map(pref => `
+                                        <button
+                                            class="dog-widget-btn"
+                                            onclick="window.dogWidgetSetPreference('${pref.value}')"
+                                            style="background: ${state.preference === pref.value ? CONFIG.primaryColor : 'white'};
+                                                   color: ${state.preference === pref.value ? 'white' : '#636e72'};
+                                                   border: 2px solid ${state.preference === pref.value ? CONFIG.primaryColor : '#ddd'};
+                                                   text-align: center; padding: 12px;">
+                                            <div style="font-size: 16px; margin-bottom: 4px;">${pref.label}</div>
+                                            <div style="font-size: 12px; opacity: 0.8;">${pref.desc}</div>
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <!-- Generate Button -->
+                            <button
+                                class="dog-widget-btn"
+                                onclick="window.dogWidgetGenerate()"
+                                ${state.loading || !state.breed || !state.gender || !state.preference ? 'disabled' : ''}
+                                style="background: ${state.loading || !state.breed || !state.gender || !state.preference ? '#d1d5db' : CONFIG.primaryColor};
+                                       color: white;
+                                       font-size: 18px;
+                                       padding: 16px;">
+                                ${state.loading ? '<span class="loading-spinner"></span>Generating...' : '✨ Generate Names'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Results view
+                container.innerHTML = `
+                    <div class="dog-widget">
+                        <div style="text-align: center; margin-bottom: 24px;">
+                            <div style="font-size: 48px; margin-bottom: 12px;">⚡</div>
+                            <h2 style="font-size: 28px; font-weight: 700; margin: 0 0 8px 0; color: ${CONFIG.primaryColor};">
+                                Perfect Names for Your ${state.gender} ${state.breed}! 🎉
+                            </h2>
+                            <p style="font-size: 16px; color: #636e72; margin: 0;">
+                                Here are your personalized dog names!
+                            </p>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 24px;">
+                            ${state.names.map(name => `
+                                <div class="dog-name-card">${name}</div>
+                            `).join('')}
+                        </div>
+
+                        <div style="text-align: center;">
+                            <button
+                                class="dog-widget-btn"
+                                onclick="window.dogWidgetReset()"
+                                style="background: white; color: #636e72; border: 2px solid #ddd; margin-right: 12px;">
+                                🔄 Try Again
+                            </button>
+                            <button
+                                class="dog-widget-btn"
+                                onclick="window.location.href='${CONFIG.ctaUrl}'"
+                                style="background: ${CONFIG.primaryColor}; color: white;">
+                                🎉 Explore More Names
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Global functions
+        window.dogWidgetSetBreed = (value) => { state.breed = value; render(); };
+        window.dogWidgetSetGender = (value) => { state.gender = value; render(); };
+        window.dogWidgetSetPreference = (value) => { state.preference = value; render(); };
+        window.dogWidgetGenerate = generateNames;
+        window.dogWidgetReset = () => {
+            state = { mode: 'quick', breed: '', gender: '', preference: '', names: [], loading: false };
+            render();
+        };
+
+        // Initial render
+        render();
+    })();
+    </script>
+
+    <!--
+    ========================================
+    EMBED INSTRUCTIONS
+    ========================================
+
+    To use this widget on your website:
+
+    1. Copy everything from <div id="dog-name-widget-container"></div>
+       down to and including the closing </script> tag
+
+    2. Replace YOUR_GEMINI_API_KEY_HERE with your actual API key from:
+       https://makersuite.google.com/app/apikey
+
+    3. (Optional) Update CONFIG.ctaUrl to your target page
+
+    4. Paste the code wherever you want the widget to appear on your site
+
+    That's it! The widget will work reliably without any backend dependencies.
+    -->
+
+</body>
+</html>
