@@ -64,23 +64,55 @@
     </div>
 
     <div class="container">
-        <h2>Embed Code (Clean Version)</h2>
+        <h2>Embed Code - Secure Version (Recommended)</h2>
         <div class="widget-list">
-            <pre><code>&lt;!-- Dog Name Generator Widget --&gt;
+            <p><strong>✅ Secure:</strong> API key is hidden on the backend server</p>
+            <pre><code>&lt;!-- Dog Name Generator Widget (Secure) --&gt;
+&lt;div
+  class="dog-name-unified-widget"
+  data-api-url="https://dog-name-generator-backend-pg3e01x4m-onlydogfans-projects.vercel.app"
+  data-cta-url="/premium-names"
+&gt;&lt;/div&gt;
+
+&lt;script src="https://onlydogfanspage.github.io/dog-name-generator-/dog-name-unified-widget.iife.js"&gt;&lt;/script&gt;</code></pre>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Embed Code - Emergency Fallback</h2>
+        <div class="widget-list">
+            <p><strong>⚠️ Warning:</strong> API key is visible in browser source code. Use only as backup.</p>
+            <pre><code>&lt;!-- Dog Name Generator Widget (Emergency Fallback) --&gt;
 &lt;div
   class="dog-name-unified-widget"
   data-api-key="AIzaSyDIG3ohbbaY3cJ7MHlbN5Yz0K7g8KGIGCs"
   data-cta-url="/premium-names"
 &gt;&lt;/div&gt;
 
-&lt;script src="https://onlydogfanspage.github.io/dog-name-generator-/dog-name-unified-widget.iife.js?v=3"&gt;&lt;/script&gt;
-&lt;!-- Widget auto-initializes, no need to call manually --&gt;</code></pre>
+&lt;script src="https://onlydogfanspage.github.io/dog-name-generator-/dog-name-unified-widget.iife.js"&gt;&lt;/script&gt;</code></pre>
         </div>
     </div>
 
     <div class="container">
-        <h2>Widget Demo</h2>
+        <h2>Embed Code - Dual Mode (Best)</h2>
+        <div class="widget-list">
+            <p><strong>🔒 Best:</strong> Uses secure backend, falls back to direct API if backend is down</p>
+            <pre><code>&lt;!-- Dog Name Generator Widget (Dual Mode) --&gt;
+&lt;div
+  class="dog-name-unified-widget"
+  data-api-url="https://dog-name-generator-backend-pg3e01x4m-onlydogfans-projects.vercel.app"
+  data-api-key="AIzaSyDIG3ohbbaY3cJ7MHlbN5Yz0K7g8KGIGCs"
+  data-cta-url="/premium-names"
+&gt;&lt;/div&gt;
+
+&lt;script src="https://onlydogfanspage.github.io/dog-name-generator-/dog-name-unified-widget.iife.js"&gt;&lt;/script&gt;</code></pre>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Widget Demo (Dual Mode)</h2>
         <div class="dog-name-unified-widget"
+             data-api-url="https://dog-name-generator-backend-pg3e01x4m-onlydogfans-projects.vercel.app"
              data-api-key="AIzaSyDIG3ohbbaY3cJ7MHlbN5Yz0K7g8KGIGCs"
              data-cta-url="/premium-names">
         </div>

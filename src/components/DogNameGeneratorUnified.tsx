@@ -3,7 +3,8 @@ import { Sparkles, Dog, Search, ArrowRight, Trophy, Zap } from "lucide-react";
 
 interface DogNameGeneratorUnifiedProps {
   ctaUrl?: string; // Allow custom CTA URL
-  apiKey?: string; // Allow custom API key
+  apiUrl?: string; // Backend API URL for secure calls (recommended)
+  apiKey?: string; // Direct API key (fallback/emergency only)
 }
 
 interface QuizAnswers {
@@ -18,7 +19,8 @@ interface QuizAnswers {
 
 export default function DogNameGeneratorUnified({
   ctaUrl = "/dog-names", // Default to a relative Webflow page
-  apiKey = "", // API key from data attribute
+  apiUrl = "", // Backend API URL from data attribute (recommended)
+  apiKey = "", // Direct API key (fallback/emergency)
 }: DogNameGeneratorUnifiedProps) {
   // Mode selection: 'choose' | 'quick' | 'quiz'
   const [mode, setMode] = useState<"choose" | "quick" | "quiz">("choose");
@@ -334,97 +336,86 @@ Generate 5 creative dog names that match this personality profile. Make them ${q
     setShowResults(false);
 
     try {
-      // Use API key from props (data-api-key attribute) or fallback to window object
-      const effectiveApiKey = apiKey || (window as any).GEMINI_API_KEY;
+      const backendUrl = apiUrl || (window as any).DOG_NAME_API_URL;
+      const directApiKey = apiKey || (window as any).GEMINI_API_KEY;
 
-      if (!effectiveApiKey) {
-        throw new Error(
-          "Gemini API key not found. Please add data-api-key attribute to the widget container."
-        );
-      }
-
-      // Try different Gemini API endpoints (fastest models first for dog names)
-      const endpoints = [
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${effectiveApiKey}`,
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${effectiveApiKey}`,
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${effectiveApiKey}`,
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveApiKey}`,
-      ];
-
-      let response;
-
-      for (const endpoint of endpoints) {
+      // Try backend first (secure, recommended)
+      if (backendUrl) {
         try {
-          response = await fetch(endpoint, {
+          console.log("🔒 Using secure backend API...");
+          const response = await fetch(`${backendUrl}/api/generate-names`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                temperature: 0.9,
-                topK: 1,
-                topP: 1,
-                maxOutputTokens: 256, // Reduced for faster generation
-              },
-              safetySettings: [
-                {
-                  category: "HARM_CATEGORY_HARASSMENT",
-                  threshold: "BLOCK_MEDIUM_AND_ABOVE",
-                },
-                {
-                  category: "HARM_CATEGORY_HATE_SPEECH",
-                  threshold: "BLOCK_MEDIUM_AND_ABOVE",
-                },
-                {
-                  category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                  threshold: "BLOCK_MEDIUM_AND_ABOVE",
-                },
-                {
-                  category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                  threshold: "BLOCK_MEDIUM_AND_ABOVE",
-                },
-              ],
-            }),
+            body: JSON.stringify({ prompt }),
           });
 
           if (response.ok) {
-            console.log("✅ API call successful with endpoint:", endpoint);
-            break;
+            const data = await response.json();
+            if (data.names && data.names.length > 0) {
+              setGeneratedNames(data.names);
+              setShowResults(true);
+              console.log("✅ Backend API success");
+              return;
+            }
+          } else {
+            console.warn("⚠️ Backend API failed, trying fallback...");
           }
         } catch (err) {
-          continue;
+          console.warn("⚠️ Backend API error, trying fallback...", err);
         }
       }
 
-      if (!response || !response.ok) {
-        const errorData = await response?.json().catch(() => null);
-        console.error("API Error:", errorData);
+      // Fallback to direct API if backend fails or not configured
+      if (directApiKey) {
+        console.log("🔓 Using direct API (emergency fallback)...");
 
-        if (response?.status === 400) {
-          throw new Error(
-            "Invalid API key. Please check your Gemini API key or get a new one from https://makersuite.google.com/app/apikey"
-          );
-        } else if (response?.status === 404) {
-          throw new Error(
-            "Gemini API model not found. Your API key may be outdated. Please get a new key from https://makersuite.google.com/app/apikey"
-          );
+        const endpoints = [
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${directApiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${directApiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${directApiKey}`,
+        ];
+
+        for (const endpoint of endpoints) {
+          try {
+            const response = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                  temperature: 0.9,
+                  topK: 1,
+                  topP: 1,
+                  maxOutputTokens: 256,
+                },
+              }),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+              if (generatedText) {
+                const names = generatedText
+                  .split("\n")
+                  .filter((name: string) => name.trim())
+                  .slice(0, 5);
+                setGeneratedNames(names);
+                setShowResults(true);
+                console.log("✅ Direct API success");
+                return;
+              }
+            }
+          } catch (err) {
+            continue;
+          }
         }
-        throw new Error(`HTTP error! status: ${response?.status || 'unknown'}`);
       }
 
-      const data = await response.json();
-      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (generatedText) {
-        const names = generatedText
-          .split("\n")
-          .filter((name: string) => name.trim())
-          .slice(0, 5);
-        setGeneratedNames(names);
-        setShowResults(true);
-      } else {
-        throw new Error("No names generated");
-      }
+      // If both methods fail
+      throw new Error(
+        "Failed to generate names. Please check your configuration or try again later."
+      );
     } catch (error) {
       console.error("Error generating names:", error);
       if (error instanceof Error) {

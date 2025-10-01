@@ -20,10 +20,11 @@ function initializeUnifiedWidgets() {
       }
 
       const ctaUrl = container.getAttribute("data-cta-url") || "/dog-names";
+      const apiUrl = container.getAttribute("data-api-url") || "";
       const apiKey = container.getAttribute("data-api-key") || "";
 
       const root = ReactDOM.createRoot(container as HTMLElement);
-      root.render(React.createElement(DogNameGeneratorUnified, { ctaUrl, apiKey }));
+      root.render(React.createElement(DogNameGeneratorUnified, { ctaUrl, apiUrl, apiKey }));
 
       // Store the root to prevent re-initialization
       widgetRoots.set(container, root);
