@@ -343,11 +343,12 @@ Generate 5 creative dog names that match this personality profile. Make them ${q
         );
       }
 
-      // Try different Gemini API endpoints (starting with newest models)
+      // Try different Gemini API endpoints (fastest models first for dog names)
       const endpoints = [
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${effectiveApiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${effectiveApiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${effectiveApiKey}`,
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveApiKey}`,
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${effectiveApiKey}`,
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${effectiveApiKey}`,
       ];
 
       let response;
@@ -363,7 +364,7 @@ Generate 5 creative dog names that match this personality profile. Make them ${q
                 temperature: 0.9,
                 topK: 1,
                 topP: 1,
-                maxOutputTokens: 2048,
+                maxOutputTokens: 256, // Reduced for faster generation
               },
               safetySettings: [
                 {
