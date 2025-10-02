@@ -36,9 +36,21 @@ app.post('/api/generate-names', async (req, res) => {
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    // Call Gemini API (using faster lite model)
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+    // Try multiple Gemini models for compatibility
+    const models = [
+      'gemini-2.5-flash-lite',
+      'gemini-flash-lite-latest',
+      'gemini-2.0-flash-lite',
+      'gemini-2.5-flash',
+    ];
+
+    let response;
+    let lastError;
+
+    for (const model of models) {
+      try {
+        response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -70,28 +82,31 @@ app.post('/api/generate-names', async (req, res) => {
           ],
         }),
       }
-    );
+        );
 
-    if (!response.ok) {
-      if (response.status === 400) {
-        throw new Error('Invalid API configuration');
+        if (response.ok) {
+          const data = await response.json();
+          const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+          if (generatedText) {
+            const names = generatedText
+              .split('\n')
+              .filter((name) => name.trim())
+              .slice(0, 5);
+
+            console.log(`✅ Success with model: ${model}`);
+            return res.json({ names });
+          }
+        }
+      } catch (err) {
+        lastError = err;
+        console.log(`❌ Failed with model ${model}:`, err.message);
+        continue;
       }
-      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
-    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (generatedText) {
-      const names = generatedText
-        .split('\n')
-        .filter((name) => name.trim())
-        .slice(0, 5);
-
-      res.json({ names });
-    } else {
-      throw new Error('No names generated');
-    }
+    // If all models failed
+    throw new Error(lastError?.message || 'All models failed to generate names');
   } catch (error) {
     console.error('Error generating names:', error);
     res.status(500).json({
